@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Interés Simple</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --background: #eff6ff;
+      --text: #172033;
+      --muted: #64748b;
+      --border: #dbe4f0;
+      --success-background: #effaf3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #dbeafe, var(--background));
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    .card {
+      width: min(100%, 520px);
+      padding: 32px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgb(30 64 175 / 12%);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      color: var(--primary-dark);
+      font-size: clamp(1.7rem, 5vw, 2.2rem);
+    }
+
+    .intro {
+      margin: 0 0 24px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .formula {
+      margin: 0 0 24px;
+      padding: 14px;
+      border-left: 4px solid var(--primary);
+      background: var(--background);
+      font-size: 1.1rem;
+      text-align: center;
+    }
+
+    .fields {
+      display: grid;
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    input,
+    select {
+      padding: 10px 12px;
+      border: 1px solid #b8c5d6;
+      color: var(--text);
+    }
+
+    input:focus,
+    select:focus {
+      outline: 3px solid rgb(37 99 235 / 20%);
+      border-color: var(--primary);
+    }
+
+    button {
+      margin-top: 24px;
+      border: 0;
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--primary-dark);
+    }
+
+    .error {
+      min-height: 22px;
+      margin: 12px 0 0;
+      color: #b91c1c;
+      font-size: 0.95rem;
+    }
+
+    .result {
+      display: none;
+      margin-top: 24px;
+      padding: 18px;
+      border-radius: 10px;
+      background: var(--success-background);
+      border: 1px solid #bbebc9;
+    }
+
+    .result.visible {
+      display: block;
+    }
+
+    .result h2 {
+      margin: 0 0 12px;
+      font-size: 1.2rem;
+    }
+
+    .result p {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 8px 0;
+    }
+
+    .result strong {
+      color: #166534;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Interés simple</h1>
+    <p class="intro">Ingresa los datos para calcular cuánto interés generará tu inversión o préstamo.</p>
+
+    <p class="formula"><strong>Interés = Capital × Tasa × Tiempo</strong></p>
+
+    <form id="interest-form">
+      <div class="fields">
+        <div>
+          <label for="capital">Capital inicial ($)</label>
+          <input id="capital" name="capital" type="number" min="0" step="0.01" placeholder="Ej. 10000" required>
+        </div>
+
+        <div>
+          <label for="rate">Tasa de interés anual (%)</label>
+          <input id="rate" name="rate" type="number" min="0" step="0.01" placeholder="Ej. 8" required>
+        </div>
+
+        <div>
+          <label for="time">Tiempo</label>
+          <input id="time" name="time" type="number" min="0" step="0.01" placeholder="Ej. 2" required>
+        </div>
+
+        <div>
+          <label for="unit">Unidad de tiempo</label>
+          <select id="unit" name="unit">
+            <option value="years">Años</option>
+            <option value="months">Meses</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit">Calcular interés</button>
+      <p class="error" id="error" role="alert" aria-live="polite"></p>
+    </form>
+
+    <section class="result" id="result" aria-live="polite" aria-labelledby="result-title">
+      <h2 id="result-title">Resultado</h2>
+      <p><span>Interés generado:</span> <strong id="interest">$0.00</strong></p>
+      <p><span>Monto total:</span> <strong id="total">$0.00</strong></p>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("interest-form");
+    const error = document.getElementById("error");
+    const result = document.getElementById("result");
+    const interestOutput = document.getElementById("interest");
+    const totalOutput = document.getElementById("total");
+
+    const currency = new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN"
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      error.textContent = "";
+      result.classList.remove("visible");
+
+      const capital = Number(document.getElementById("capital").value);
+      const rate = Number(document.getElementById("rate").value);
+      const time = Number(document.getElementById("time").value);
+      const unit = document.getElementById("unit").value;
+
+      if (![capital, rate, time].every(Number.isFinite) || capital < 0 || rate < 0 || time <= 0) {
+        error.textContent = "Ingresa valores válidos: el capital y la tasa no pueden ser negativos, y el tiempo debe ser mayor que cero.";
+        return;
+      }
+
+      const timeInYears = unit === "months" ? time / 12 : time;
+      const interest = capital * (rate / 100) * timeInYears;
+
+      interestOutput.textContent = currency.format(interest);
+      totalOutput.textContent = currency.format(capital + interest);
+      result.classList.add("visible");
+    });
+  </script>
+</body>
+</html>
